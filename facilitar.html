@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Impressão Automática de OS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        p {
+            text-align: center;
+            color: #555;
+            font-size: 18px;
+        }
+
+        textarea {
+            width: 80%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 10px auto;
+            display: block;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #botao-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .botao-impressao {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #007bff;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #fff;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .botao-impressao:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .check-icon {
+            margin-left: 10px;
+            color: green;
+            font-size: 20px;
+        }
+
+        #feedback {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+    <script type="text/javascript">
+        var filaDeImpressao = [];
+        var iframeAberto = false;
+
+        function adicionarNumeros() {
+            var input = document.getElementById("numeros").value;
+            var numRegs = input.split(/[\s,]+/).filter(Boolean); 
+
+            if (numRegs.length > 0) {
+                var container = document.getElementById("botao-container");
+                container.innerHTML = ""; 
+
+                numRegs.forEach(function(numReg) {
+                    var button = document.createElement("button");
+                    button.className = "botao-impressao";
+                    button.innerText = "Imprimir " + numReg;
+                    button.onclick = function() { adicionarPaginaFila(numReg, button); };
+                    container.appendChild(button);
+                    container.appendChild(document.createElement("br"));
+                });
+            } else {
+                alert("Por favor, insira ao menos um número.");
+            }
+        }
+
+
+        function adicionarPaginaFila(numReg, button) {
+
+            filaDeImpressao.push(numReg);
+
+            var checkIcon = document.createElement("span");
+            checkIcon.className = "check-icon";
+            checkIcon.innerHTML = "&#10004;";  
+            button.appendChild(checkIcon);
+            button.disabled = true; 
+
+
+            processarFila();
+        }
+
+
+        function processarFila() {
+            if (filaDeImpressao.length > 0 && !iframeAberto) {
+                var numReg = filaDeImpressao.shift();
+                gerarImpressao(numReg, function() {
+                    processarFila();
+                });
+            } else if (filaDeImpressao.length === 0) {
+                alert("Todas as páginas foram enviadas para impressão!");
+            }
+        }
+
+
+        function gerarImpressao(numReg, callback) {
+            var baseUrl = "http://192.168.0.3:8080/oasis-2012/modulos/venda/gera_modelo/exibe_modelo_impressao.php?pnumreg=";
+            var ptpVenda = "&ptp_venda=2&id_modelo=2&pid_usuario=432";
+            var url = baseUrl + numReg + ptpVenda;
+
+
+            if (!document.getElementById('iframeImpressao')) {
+                var iframe = document.createElement('iframe');
+                iframe.id = 'iframeImpressao';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+
+            var iframe = document.getElementById('iframeImpressao');
+            iframe.src = url;
+
+            iframe.onload = function() {
+                iframe.contentWindow.print();
+
+                iframe.contentWindow.onafterprint = function() {
+                    if (callback && typeof callback === "function") {
+                        callback();
+                    }
+                };
+            };
+        }
+    </script>
+</head>
+<body>
+    <h1>Impressão Automática de OS</h1>
+    <p>Cole os números abaixo (separados por vírgula, espaço ou quebra de linha) e clique em "Adicionar Números" para gerar os botões de impressão.</p>
+
+    <textarea id="numeros" placeholder="Exemplo: 73226, 73298, 73300"></textarea><br><br>
+
+    <button onclick="adicionarNumeros()">Adicionar Números</button>
+
+    <div id="botao-container"></div>
+
+    <div id="feedback"></div>
+</body>
+</html>
